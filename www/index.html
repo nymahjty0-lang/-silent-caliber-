@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<title>SILENT CALIBER</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<!-- ================= LOADING ================= -->
+<div id="loadingScreen">
+  <div class="logoWrap">
+    <div class="logoA">SILENT CALIBER</div>
+    <div class="logoSub">TACTICAL COMBAT</div>
+  </div>
+  <div class="loadBarOuter"><div class="loadBarInner" id="loadBarInner"></div></div>
+  <div class="loadText" id="loadText">در حال بارگذاری...</div>
+</div>
+
+<!-- ================= MAIN MENU ================= -->
+<div id="mainMenu" class="screen hidden">
+  <div class="menuBg"></div>
+  <div class="menuContent">
+    <div class="gameLogo gameLogoText">SILENT CALIBER</div>
+    <div class="menuTagline">TACTICAL COMBAT SYSTEM</div>
+
+    <div class="menuButtons">
+      <button class="btn btnPrimary" id="btnPlay">▶ شروع بازی</button>
+      <button class="btn" id="btnSettings">⚙ تنظیمات</button>
+      <button class="btn" id="btnCredits">ℹ درباره</button>
+    </div>
+    <div class="menuFooter">نسخه 0.1 — دموی داخلی</div>
+  </div>
+</div>
+
+<!-- ================= MODE SELECT ================= -->
+<div id="modeSelect" class="screen hidden">
+  <div class="menuBg"></div>
+  <div class="menuContent">
+    <div class="panelTitle">انتخاب حالت بازی</div>
+    <div class="modeCards">
+      <div class="modeCard" id="modeBot">
+        <div class="modeIcon">🤖</div>
+        <div class="modeName">تمرین با بات</div>
+        <div class="modeDesc">مبارزه آفلاین در نقشه شهری با بات‌های دشمن</div>
+      </div>
+      <div class="modeCard" id="modeLan">
+        <div class="modeIcon">📶</div>
+        <div class="modeName">آنلاین محلی (Hotspot)</div>
+        <div class="modeDesc">اتصال چند بازیکن از طریق یک شبکه محلی — تا ۲۰ نفر</div>
+      </div>
+    </div>
+    <button class="btn btnBack" id="backFromMode">بازگشت</button>
+  </div>
+</div>
+
+<!-- ================= LAN LOBBY ================= -->
+<div id="lanLobby" class="screen hidden">
+  <div class="menuBg"></div>
+  <div class="menuContent">
+    <div class="panelTitle">اتاق محلی (LAN / Hotspot)</div>
+    <div class="lanBox">
+      <label class="fieldLabel">آدرس سرور میزبان (IP:Port)</label>
+      <input id="hostAddress" class="textInput" placeholder="مثال: 192.168.43.1:8080" />
+      <div class="lanRow">
+        <button class="btn" id="btnHostGame">میزبانی بازی (Host)</button>
+        <button class="btn" id="btnJoinGame">اتصال به بازی (Join)</button>
+      </div>
+      <div class="lanStatus" id="lanStatus">هنوز متصل نشده‌اید</div>
+      <div class="lanHelp">
+        یک نفر باید روی گوشی یا لپ‌تاپ خود سرور محلی (فایل server.js پیوست‌شده) را اجرا کند و بقیه بازیکنان با اتصال به همان Wi‑Fi/Hotspot و وارد کردن IP او، به بازی ملحق شوند.
+      </div>
+    </div>
+    <button class="btn btnBack" id="backFromLan">بازگشت</button>
+  </div>
+</div>
+
+<!-- ================= SETTINGS ================= -->
+<div id="settingsScreen" class="screen hidden">
+  <div class="menuBg"></div>
+  <div class="menuContent">
+    <div class="panelTitle">تنظیمات</div>
+
+    <div class="settingsGroup">
+      <div class="settingsGroupTitle">گرافیک</div>
+      <div class="settingRow">
+        <label>کیفیت گرافیک</label>
+        <select id="graphicsQuality" class="selectInput">
+          <option value="low">پایین</option>
+          <option value="medium" selected>متوسط</option>
+          <option value="high">بالا</option>
+        </select>
+      </div>
+      <div class="settingRow">
+        <label>محدودیت FPS</label>
+        <select id="fpsLimit" class="selectInput">
+          <option value="30">30</option>
+          <option value="60" selected>60</option>
+          <option value="0">نامحدود</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="settingsGroup">
+      <div class="settingsGroupTitle">کنترل‌ها</div>
+      <div class="settingRow">
+        <label>حساسیت نگاه: <span id="sensVal">50</span></label>
+        <input type="range" id="sensSlider" min="10" max="150" value="50" class="slider">
+      </div>
+      <div class="settingRow">
+        <label>حجم صدا: <span id="volVal">80</span></label>
+        <input type="range" id="volSlider" min="0" max="100" value="80" class="slider">
+      </div>
+    </div>
+
+    <button class="btn btnBack" id="backFromSettings">بازگشت</button>
+  </div>
+</div>
+
+<!-- ================= CREDITS ================= -->
+<div id="creditsScreen" class="screen hidden">
+  <div class="menuBg"></div>
+  <div class="menuContent">
+    <div class="panelTitle">درباره SILENT CALIBER</div>
+    <p class="creditsText">
+      SILENT CALIBER یک بازی تیراندازی اول‌شخص با طراحی و کد کاملاً اورجینال است.
+      همه‌ی گرافیک، نقشه‌ها و منطق بازی به‌صورت اختصاصی ساخته شده‌اند و از هیچ فایل یا Asset بازی دیگری استفاده نشده.
+    </p>
+    <button class="btn btnBack" id="backFromCredits">بازگشت</button>
+  </div>
+</div>
+
+<!-- ================= GAME SCREEN ================= -->
+<div id="gameScreen" class="screen hidden">
+  <canvas id="renderCanvas"></canvas>
+
+  <!-- HUD -->
+  <div id="hud">
+    <div class="hudTop">
+      <div class="hudScore">امتیاز: <span id="scoreVal">0</span></div>
+      <div class="hudKD">K/D: <span id="killsVal">0</span>/<span id="deathsVal">0</span></div>
+    </div>
+
+    <div class="crosshair" id="crosshair">
+      <div class="chLine chTop"></div><div class="chLine chBottom"></div>
+      <div class="chLine chLeft"></div><div class="chLine chRight"></div>
+    </div>
+
+    <div class="hitMarker" id="hitMarker"></div>
+    <div class="damageFlash" id="damageFlash"></div>
+    <div class="killFeed" id="killFeed"></div>
+
+    <div class="hudBottomLeft">
+      <div class="barGroup">
+        <div class="barLabel">HP</div>
+        <div class="barOuter"><div class="barInner hpBar" id="hpBar"></div></div>
+        <span id="hpVal">100</span>
+      </div>
+      <div class="barGroup">
+        <div class="barLabel">ARM</div>
+        <div class="barOuter"><div class="barInner armBar" id="armBar"></div></div>
+        <span id="armVal">50</span>
+      </div>
+    </div>
+
+    <div class="hudBottomRight">
+      <div class="weaponName" id="weaponName">ASSAULT RIFLE</div>
+      <div class="ammoCount"><span id="ammoInMag">30</span> / <span id="ammoReserve">90</span></div>
+    </div>
+
+    <div class="minimapWrap"><canvas id="minimap" width="120" height="120"></canvas></div>
+  </div>
+
+  <!-- Touch Controls -->
+  <div id="touchControls">
+    <div class="joystickZone" id="moveJoystickZone">
+      <div class="joystickBase" id="moveJoystickBase">
+        <div class="joystickStick" id="moveJoystickStick"></div>
+      </div>
+    </div>
+
+    <div class="lookZone" id="lookZone"></div>
+
+    <div class="rightControls">
+      <button class="ctrlBtn fireBtn" id="fireBtn">🔥</button>
+      <div class="ctrlColumn">
+        <button class="ctrlBtn smallBtn" id="reloadBtn">⟳</button>
+        <button class="ctrlBtn smallBtn" id="jumpBtn">⤒</button>
+        <button class="ctrlBtn smallBtn" id="crouchBtn">⤓</button>
+        <button class="ctrlBtn smallBtn" id="sprintBtn">➤➤</button>
+      </div>
+    </div>
+
+    <div class="weaponSwitchRow" id="weaponSwitchRow">
+      <button class="weaponBtn" data-weapon="pistol">پیستول</button>
+      <button class="weaponBtn" data-weapon="smg">SMG</button>
+      <button class="weaponBtn active" data-weapon="rifle">رایفل</button>
+      <button class="weaponBtn" data-weapon="shotgun">شاتگان</button>
+      <button class="weaponBtn" data-weapon="sniper">اسنایپر</button>
+    </div>
+
+    <button class="ctrlBtn nadeBtn" id="nadeBtn">💣</button>
+    <button class="ctrlBtn pauseBtn" id="pauseBtn">☰</button>
+  </div>
+
+  <!-- Pause Menu -->
+  <div id="pauseMenu" class="screen hidden">
+    <div class="menuContent">
+      <div class="panelTitle">توقف بازی</div>
+      <div class="menuButtons">
+        <button class="btn btnPrimary" id="resumeBtn">ادامه بازی</button>
+        <button class="btn" id="quitToMenuBtn">خروج به منو</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Death / Respawn -->
+  <div id="deathScreen" class="screen hidden">
+    <div class="menuContent">
+      <div class="panelTitle deathTitle">حذف شدی!</div>
+      <div id="killerText" class="killerText"></div>
+      <button class="btn btnPrimary" id="respawnBtn">بازگشت به بازی</button>
+    </div>
+  </div>
+</div>
+
+<script src="engine.js"></script>
+<script src="game.js"></script>
+</body>
+  </html>
