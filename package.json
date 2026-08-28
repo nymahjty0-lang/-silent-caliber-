@@ -1,0 +1,16 @@
+{
+  "name": "silentcaliber-tactical-game",
+  "displayName": "SILENT CALIBER",
+  "version": "0.1.0",
+  "description": "SILENT CALIBER — Original tactical FPS for Android",
+  "main": "index.js",
+  "scripts": {
+    "build": "cordova build android"
+  },
+  "devDependencies": {
+    "cordova-android": "^13.0.0"
+  },
+  "cordova": {
+    "platforms": ["android"]
+  }
+}
