@@ -1,0 +1,8 @@
+{
+  "name": "silentcaliber-lan-server",
+  "version": "1.0.0",
+  "description": "SILENT CALIBER game LAN/Hotspot multiplayer relay server",
+  "main": "server.js",
+  "scripts": { "start": "node server.js" },
+  "dependencies": { "ws": "^8.16.0" }
+}
