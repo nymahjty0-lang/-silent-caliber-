@@ -32,13 +32,29 @@ jobs:
       - name: Add Android platform
         run: cordova platform add android
 
-      - name: Build debug APK
-        run: cordova build android
+      - name: Build release APK (unsigned)
+        run: cordova build android --release
 
-      - name: Locate APK
-        run: find . -name "*.apk"
+      - name: Decode keystore
+        run: echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 -d > release.keystore
 
-      - name: Upload APK artifact
+      - name: Sign APK
+        run: |
+          UNSIGNED_APK=$(find platforms/android/app/build/outputs/apk/release -name "*unsigned.apk" | head -1)
+          jarsigner -verbose -sigalg SHA256withRSA -digestalg SHA-256 \
+            -keystore release.keystore \
+            -storepass "${{ secrets.KEYSTORE_PASSWORD }}" \
+            -keypass "${{ secrets.KEY_PASSWORD }}" \
+            "$UNSIGNED_APK" "${{ secrets.KEY_ALIAS }}"
+          echo "SIGNED_APK=$UNSIGNED_APK" >> $GITHUB_ENV
+
+      - name: Align APK
+        run: |
+          BUILD_TOOLS=$(ls -d $ANDROID_HOME/build-tools/*/ | sort -V | tail -1)
+          "${BUILD_TOOLS}zipalign" -v 4 "$SIGNED_APK" SilentCaliber-release-signed.apk
+
+      - name: Upload signed APK artifact
         uses: actions/upload-artifact@v4
         with:
-          name: SilentCaliber-debug-apk
+          name: SilentCaliber-release-signed
+          path: SilentCaliber-release-signed.apk
