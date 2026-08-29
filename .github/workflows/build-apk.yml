@@ -35,12 +35,19 @@ jobs:
       - name: Build release APK (unsigned)
         run: cordova build android --release
 
+      - name: List all APKs (debug)
+        run: find . -name "*.apk" -exec ls -la {} \;
+
       - name: Decode keystore
         run: echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 -d > release.keystore
 
       - name: Sign APK
         run: |
-          UNSIGNED_APK=$(find platforms/android/app/build/outputs/apk/release -name "*unsigned.apk" | head -1)
+          UNSIGNED_APK=$(find . -name "*.apk" | grep -i unsigned | head -1)
+          if [ -z "$UNSIGNED_APK" ]; then
+            UNSIGNED_APK=$(find . -name "*.apk" | head -1)
+          fi
+          echo "Found APK: $UNSIGNED_APK"
           jarsigner -verbose -sigalg SHA256withRSA -digestalg SHA-256 \
             -keystore release.keystore \
             -storepass "${{ secrets.KEYSTORE_PASSWORD }}" \
