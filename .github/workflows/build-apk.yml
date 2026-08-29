@@ -33,21 +33,26 @@ jobs:
         run: cordova platform add android
 
       - name: Build release APK (unsigned)
-        run: cordova build android --release
+        run: cordova build android --release -- --packageType=apk
 
-      - name: List all APKs (debug)
-        run: find . -name "*.apk" -exec ls -la {} \;
+      - name: List all output files (debug)
+        run: find platforms/android -type f \( -name "*.apk" -o -name "*.aab" \) -exec ls -la {} \;
 
       - name: Decode keystore
         run: echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 -d > release.keystore
 
       - name: Sign APK
         run: |
-          UNSIGNED_APK=$(find . -name "*.apk" | grep -i unsigned | head -1)
+          UNSIGNED_APK=$(find platforms/android -name "*.apk" | grep -i unsigned | head -1)
           if [ -z "$UNSIGNED_APK" ]; then
-            UNSIGNED_APK=$(find . -name "*.apk" | head -1)
+            UNSIGNED_APK=$(find platforms/android -name "*.apk" | head -1)
           fi
           echo "Found APK: $UNSIGNED_APK"
+          if [ -z "$UNSIGNED_APK" ]; then
+            echo "NO APK FOUND - listing all platforms/android build outputs:"
+            find platforms/android -type f -name "*.apk" -o -type f -name "*.aab"
+            exit 1
+          fi
           jarsigner -verbose -sigalg SHA256withRSA -digestalg SHA-256 \
             -keystore release.keystore \
             -storepass "${{ secrets.KEYSTORE_PASSWORD }}" \
