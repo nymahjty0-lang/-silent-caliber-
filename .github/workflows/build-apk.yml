@@ -35,35 +35,36 @@ jobs:
       - name: Build release APK (unsigned)
         run: cordova build android --release -- --packageType=apk
 
-      - name: List all output files (debug)
-        run: find platforms/android -type f \( -name "*.apk" -o -name "*.aab" \) -exec ls -la {} \;
-
-      - name: Decode keystore
-        run: echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 -d > release.keystore
-
-      - name: Sign APK
+      - name: Find unsigned APK
         run: |
           UNSIGNED_APK=$(find platforms/android -name "*.apk" | grep -i unsigned | head -1)
           if [ -z "$UNSIGNED_APK" ]; then
             UNSIGNED_APK=$(find platforms/android -name "*.apk" | head -1)
           fi
-          echo "Found APK: $UNSIGNED_APK"
-          if [ -z "$UNSIGNED_APK" ]; then
-            echo "NO APK FOUND - listing all platforms/android build outputs:"
-            find platforms/android -type f -name "*.apk" -o -type f -name "*.aab"
-            exit 1
-          fi
-          jarsigner -verbose -sigalg SHA256withRSA -digestalg SHA-256 \
-            -keystore release.keystore \
-            -storepass "${{ secrets.KEYSTORE_PASSWORD }}" \
-            -keypass "${{ secrets.KEY_PASSWORD }}" \
-            "$UNSIGNED_APK" "${{ secrets.KEY_ALIAS }}"
-          echo "SIGNED_APK=$UNSIGNED_APK" >> $GITHUB_ENV
+          echo "Found: $UNSIGNED_APK"
+          echo "UNSIGNED_APK=$UNSIGNED_APK" >> $GITHUB_ENV
+
+      - name: Decode keystore
+        run: echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 -d > release.keystore
 
       - name: Align APK
         run: |
           BUILD_TOOLS=$(ls -d $ANDROID_HOME/build-tools/*/ | sort -V | tail -1)
-          "${BUILD_TOOLS}zipalign" -v 4 "$SIGNED_APK" SilentCaliber-release-signed.apk
+          "${BUILD_TOOLS}zipalign" -v -p 4 "$UNSIGNED_APK" aligned.apk
+          echo "BUILD_TOOLS=$BUILD_TOOLS" >> $GITHUB_ENV
+
+      - name: Sign APK with apksigner (v2 scheme)
+        run: |
+          "${BUILD_TOOLS}apksigner" sign \
+            --ks release.keystore \
+            --ks-key-alias "${{ secrets.KEY_ALIAS }}" \
+            --ks-pass pass:"${{ secrets.KEYSTORE_PASSWORD }}" \
+            --key-pass pass:"${{ secrets.KEY_PASSWORD }}" \
+            --out SilentCaliber-release-signed.apk \
+            aligned.apk
+
+      - name: Verify signature
+        run: "${BUILD_TOOLS}apksigner" verify --verbose SilentCaliber-release-signed.apk
 
       - name: Upload signed APK artifact
         uses: actions/upload-artifact@v4
