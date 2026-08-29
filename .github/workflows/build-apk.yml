@@ -50,21 +50,16 @@ jobs:
       - name: Align APK
         run: |
           BUILD_TOOLS=$(ls -d $ANDROID_HOME/build-tools/*/ | sort -V | tail -1)
-          "${BUILD_TOOLS}zipalign" -v -p 4 "$UNSIGNED_APK" aligned.apk
           echo "BUILD_TOOLS=$BUILD_TOOLS" >> $GITHUB_ENV
+          "${BUILD_TOOLS}zipalign" -v -p 4 "$UNSIGNED_APK" aligned.apk
 
-      - name: Sign APK with apksigner (v2 scheme)
+      - name: Sign APK with apksigner
         run: |
-          "${BUILD_TOOLS}apksigner" sign \
-            --ks release.keystore \
-            --ks-key-alias "${{ secrets.KEY_ALIAS }}" \
-            --ks-pass pass:"${{ secrets.KEYSTORE_PASSWORD }}" \
-            --key-pass pass:"${{ secrets.KEY_PASSWORD }}" \
-            --out SilentCaliber-release-signed.apk \
-            aligned.apk
+          "${BUILD_TOOLS}apksigner" sign --ks release.keystore --ks-key-alias "${{ secrets.KEY_ALIAS }}" --ks-pass pass:"${{ secrets.KEYSTORE_PASSWORD }}" --key-pass pass:"${{ secrets.KEY_PASSWORD }}" --out SilentCaliber-release-signed.apk aligned.apk
 
       - name: Verify signature
-        run: "${BUILD_TOOLS}apksigner" verify --verbose SilentCaliber-release-signed.apk
+        run: |
+          "${BUILD_TOOLS}apksigner" verify --verbose SilentCaliber-release-signed.apk
 
       - name: Upload signed APK artifact
         uses: actions/upload-artifact@v4
