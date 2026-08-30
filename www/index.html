@@ -24,10 +24,40 @@
     <div class="menuTagline">2D TACTICAL COMBAT</div>
     <div class="menuButtons">
       <button class="btn btnPrimary" id="btnPlay">▶ شروع بازی</button>
+      <button class="btn" id="btnCustomize">🧑 شخصی‌سازی شخصیت</button>
       <button class="btn" id="btnSettings">⚙ تنظیمات</button>
       <button class="btn" id="btnCredits">ℹ درباره</button>
     </div>
-    <div class="menuFooter">نسخه 0.2 — دموی داخلی</div>
+    <div class="menuFooter">نسخه 0.3 — دموی داخلی</div>
+  </div>
+</div>
+
+<!-- CUSTOMIZE SCREEN -->
+<div id="customizeScreen" class="screen hidden">
+  <div class="menuBg"></div>
+  <div class="menuContent">
+    <div class="panelTitle">شخصی‌سازی شخصیت</div>
+
+    <canvas id="previewCanvas" width="160" height="200" class="previewCanvas"></canvas>
+
+    <div class="custBox">
+      <label class="fieldLabel">اسم بازیکن</label>
+      <input id="nameInput" class="textInput" maxlength="12" placeholder="اسم خود را وارد کنید" />
+
+      <label class="fieldLabel">رنگ پوست</label>
+      <div class="swatchRow" id="skinRow"></div>
+
+      <label class="fieldLabel">رنگ لباس</label>
+      <div class="swatchRow" id="outfitRow"></div>
+
+      <label class="fieldLabel">کلاه / سربند</label>
+      <div class="swatchRow" id="hatRow"></div>
+    </div>
+
+    <div class="menuButtons" style="margin-top:18px">
+      <button class="btn btnPrimary" id="saveCustomize">ذخیره</button>
+      <button class="btn btnBack" id="backFromCustomize">بازگشت</button>
+    </div>
   </div>
 </div>
 
@@ -37,8 +67,8 @@
     <div class="panelTitle">انتخاب حالت بازی</div>
     <div class="modeCards">
       <div class="modeCard" id="modeBot">
-        <div class="modeIcon">🤖</div>
-        <div class="modeName">تمرین با بات</div>
+        <div class="modeIcon">🏴‍☠️</div>
+        <div class="modeName">تمرین با بات‌های دزد دریایی</div>
         <div class="modeDesc">مبارزه آفلاین با بات‌های دشمن</div>
       </div>
       <div class="modeCard" id="modeLan">
@@ -48,6 +78,16 @@
       </div>
     </div>
     <button class="btn btnBack" id="backFromMode">بازگشت</button>
+  </div>
+</div>
+
+<!-- MAP SELECT -->
+<div id="mapSelect" class="screen hidden">
+  <div class="menuBg"></div>
+  <div class="menuContent">
+    <div class="panelTitle">انتخاب نقشه</div>
+    <div class="modeCards" id="mapCards"></div>
+    <button class="btn btnBack" id="backFromMapSelect">بازگشت</button>
   </div>
 </div>
 
@@ -168,4 +208,4 @@
 
 <script src="game.js"></script>
 </body>
-      </html>
+  </html>
