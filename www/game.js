@@ -137,7 +137,7 @@ function startGame(mode){
   resizeCanvas();
   window.onresize = resizeCanvas;
   requestAnimationFrame(loop);
-                                                    }
+}
 function resizeCanvas(){
   canvas.width = canvas.clientWidth;
   canvas.height = canvas.clientHeight;
@@ -229,4 +229,233 @@ function updateBullets(dt){
   }
 }
 
-function damageBot(b,
+function damageBot(b, dmg){
+  b.hp -= dmg;
+  if(b.hp<=0 && b.alive){
+    b.alive=false;
+    GameState.player.kills++; GameState.player.score += 100;
+    addKillFeed(`تو ${b.id} را حذف کردی`);
+    updateHUD();
+    setTimeout(()=>{ b.alive=true; b.hp=100; b.x=200+Math.random()*(WORLD_W-400); b.y=900; }, 3500);
+  }
+}
+function addKillFeed(text){
+  const feed = $('killFeed');
+  const item = document.createElement('div');
+  item.className='killFeedItem'; item.textContent=text;
+  feed.appendChild(item);
+  setTimeout(()=> item.remove(), 3000);
+}
+function showHitMarker(){ const el=$('hitMarker'); el.classList.remove('show'); void el.offsetWidth; el.classList.add('show'); }
+
+function damagePlayer(dmg){
+  const p = GameState.player;
+  p.hp -= dmg;
+  flashScreen();
+  if(p.hp<=0){
+    p.hp=0; p.deaths++;
+    GameState.paused=true;
+    $('deathScreen').classList.remove('hidden');
+  }
+  updateHUD();
+}
+function flashScreen(){
+  const el = $('damageFlash');
+  el.classList.add('show'); setTimeout(()=> el.classList.remove('show'), 150);
+}
+
+// ---------------- HUD ----------------
+function updateHUD(){
+  const p = GameState.player, key=GameState.weaponKey, w=WEAPONS[key], a=GameState.ammo[key];
+  $('hpVal').textContent = Math.round(p.hp); $('hpBar').style.width = Math.max(0,p.hp)+'%';
+  $('fuelVal').textContent = Math.round(p.fuel); $('fuelBar').style.width = Math.max(0,p.fuel)+'%';
+  $('scoreVal').textContent = p.score;
+  $('killsVal').textContent = p.kills; $('deathsVal').textContent = p.deaths;
+  $('weaponName').textContent = w.name;
+  $('ammoInMag').textContent = a.mag; $('ammoReserve').textContent = a.reserve;
+}
+
+// ---------------- Physics / update loop ----------------
+let lastTime = performance.now();
+function loop(now){
+  if(!GameState.running) return;
+  const dt = Math.min(0.033,(now-lastTime)/1000); lastTime = now;
+  if(!GameState.paused){
+    update(dt, now);
+    render();
+  }
+  requestAnimationFrame(loop);
+}
+
+const GRAVITY = 1600;
+function collidePlatforms(entity){
+  entity.onGround = false;
+  for(const plat of GameState.platforms){
+    const left = entity.x - entity.w/2, right = entity.x + entity.w/2;
+    const top = entity.y - entity.h, bottom = entity.y;
+    if(right > plat.x && left < plat.x+plat.w){
+      if(bottom >= plat.y && bottom - entity.vy_prev*0.02 <= plat.y+6 && entity.vy >= 0){
+        entity.y = plat.y; entity.vy = 0; entity.onGround = true;
+      }
+    }
+  }
+}
+
+function update(dt, now){
+  const p = GameState.player;
+  p.facing = Input.moveX < -0.1 ? -1 : (Input.moveX > 0.1 ? 1 : p.facing);
+  p.vx = Input.moveX * 260;
+
+  if(Input.jetpack && p.fuel > 0){
+    p.vy -= 2600*dt;
+    p.fuel -= 45*dt;
+  } else {
+    p.fuel = Math.min(100, p.fuel + 18*dt);
+  }
+  p.vy_prev = p.vy;
+  p.vy += GRAVITY*dt;
+  p.vy = Math.min(p.vy, 1400);
+
+  p.x += p.vx*dt; p.y += p.vy*dt;
+  p.x = Math.max(20, Math.min(WORLD_W-20, p.x));
+  if(p.y > WORLD_H) { p.y = 900; p.vy=0; damagePlayer(15); }
+  collidePlatforms(p);
+
+  if(Input.firing) tryFire(now);
+  updateBullets(dt);
+  updateBots(dt, now);
+  Net.sendState();
+
+  GameState.camX = p.x;
+  GameState.camY = p.y;
+}
+
+function updateBots(dt, now){
+  const p = GameState.player;
+  for(const b of GameState.bots){
+    if(!b.alive) continue;
+    const dx = p.x - b.x;
+    b.dir = dx > 0 ? 1 : -1;
+    b.vx = b.dir * 100;
+    b.vy_prev = b.vy;
+    b.vy += GRAVITY*dt;
+    b.x += b.vx*dt; b.y += b.vy*dt;
+    if(b.y > WORLD_H){ b.y = 900; b.vy = 0; }
+    collidePlatforms(b);
+
+    const dist = Math.hypot(dx, p.y-b.y);
+    if(dist < 500 && now - b.lastShot > 900+Math.random()*600){
+      b.lastShot = now;
+      const dirX = b.dir, dirY = (p.y-b.y)/Math.max(1,Math.abs(dx));
+      GameState.bullets.push({
+        x:b.x+b.dir*16, y:b.y-24, vx:dirX*800, vy:dirY*300,
+        dmg: 10+Math.random()*8, range:500, dist:0, owner:'bot'
+      });
+    }
+  }
+}
+
+// ---------------- Render ----------------
+function render(){
+  const w = canvas.width, h = canvas.height;
+  ctx.fillStyle = '#0e1420';
+  ctx.fillRect(0,0,w,h);
+
+  const camX = GameState.camX - w/2, camY = GameState.camY - h/2 - 100;
+
+  // parallax background lines
+  ctx.strokeStyle = '#1a2230';
+  ctx.lineWidth = 1;
+  for(let i=0;i<20;i++){
+    const x = (i*220 - camX*0.3) % (w+220);
+    ctx.beginPath(); ctx.moveTo(x,0); ctx.lineTo(x,h); ctx.stroke();
+  }
+
+  ctx.save();
+  ctx.translate(-camX, -camY);
+
+  // platforms
+  ctx.fillStyle = '#3a4658';
+  for(const plat of GameState.platforms){
+    ctx.fillRect(plat.x, plat.y, plat.w, plat.h);
+    ctx.fillStyle = '#4d5c72';
+    ctx.fillRect(plat.x, plat.y, plat.w, 4);
+    ctx.fillStyle = '#3a4658';
+  }
+
+  // bots
+  for(const b of GameState.bots){
+    if(!b.alive) continue;
+    drawCharacter(b.x, b.y, b.dir, '#e05a3a', b.hp);
+  }
+
+  // remote players
+  for(const id in GameState.remotePlayers){
+    const rp = GameState.remotePlayers[id];
+    drawCharacter(rp.x, rp.y, rp.facing||1, '#3ad0ff', 100);
+  }
+
+  // player
+  const p = GameState.player;
+  drawCharacter(p.x, p.y, p.facing, '#ffb020', p.hp);
+
+  // bullets
+  ctx.fillStyle = '#ffe066';
+  for(const b of GameState.bullets){
+    ctx.beginPath(); ctx.arc(b.x, b.y, 3, 0, 7); ctx.fill();
+  }
+
+  ctx.restore();
+}
+
+function drawCharacter(x, y, dir, color, hp){
+  ctx.save();
+  ctx.translate(x, y);
+  // body
+  ctx.fillStyle = color;
+  ctx.fillRect(-13, -46, 26, 46);
+  // head
+  ctx.beginPath(); ctx.arc(0, -52, 10, 0, 7); ctx.fill();
+  // gun
+  ctx.fillStyle = '#222';
+  ctx.fillRect(dir>0?10:-26, -30, 16, 5);
+  // hp bar
+  ctx.fillStyle = '#000000aa';
+  ctx.fillRect(-16, -66, 32, 5);
+  ctx.fillStyle = hp>50?'#4ade80':(hp>20?'#fbbf24':'#ef4444');
+  ctx.fillRect(-16, -66, 32*Math.max(0,hp)/100, 5);
+  ctx.restore();
+}
+
+// ---------------- LAN Multiplayer ----------------
+const Net = {
+  ws:null, playerId: 'p'+Math.floor(Math.random()*100000),
+  host(){
+    $('lanStatus').textContent = 'برای میزبانی، سرور LAN را روی این دستگاه یا یک لپ‌تاپ در همان شبکه اجرا کنید (server/server.js) سپس آدرس آن را در قسمت Join وارد کنید.';
+  },
+  join(addr){
+    if(!addr){ $('lanStatus').textContent='آدرس سرور را وارد کنید'; return; }
+    try{
+      this.ws = new WebSocket('ws://'+addr);
+      this.ws.onopen = ()=>{ $('lanStatus').textContent='متصل شد ✅'; };
+      this.ws.onclose = ()=>{ $('lanStatus').textContent='اتصال قطع شد'; };
+      this.ws.onerror = ()=>{ $('lanStatus').textContent='خطا در اتصال'; };
+      this.ws.onmessage = (ev)=>{
+        try{
+          const msg = JSON.parse(ev.data);
+          if(msg.type==='state') GameState.remotePlayers[msg.id] = msg;
+          if(msg.type==='leave') delete GameState.remotePlayers[msg.id];
+        }catch(e){}
+      };
+    }catch(e){ $('lanStatus').textContent='آدرس نامعتبر است'; }
+  },
+  sendState(){
+    if(!this.ws || this.ws.readyState!==1) return;
+    const p = GameState.player;
+    this.ws.send(JSON.stringify({type:'state', id:this.playerId, x:p.x, y:p.y, facing:p.facing}));
+  },
+  sendShoot(){
+    if(!this.ws || this.ws.readyState!==1) return;
+    this.ws.send(JSON.stringify({type:'shoot', id:this.playerId}));
+  }
+};
