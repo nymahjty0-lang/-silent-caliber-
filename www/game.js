@@ -35,7 +35,7 @@ function showScreen(id){
 
 // ---------------- Character profile (persisted) ----------------
 const Profile = {
-  name: localStorage.getItem('sc_name') || 'Amin',
+  name: localStorage.getItem('sc_name') || '',
   skin: localStorage.getItem('sc_skin') || SKIN_COLORS[0],
   outfit: localStorage.getItem('sc_outfit') || OUTFIT_COLORS[0],
   hat: localStorage.getItem('sc_hat') || 'none',
@@ -73,7 +73,7 @@ window.addEventListener('load', ()=>{
   $('btnJoinGame').onclick = ()=> { GameState.selectedMap = 0; startGame('lan-join'); };
 
   $('saveCustomize').onclick = ()=>{
-    Profile.name = $('nameInput').value.trim() || 'Amin';
+    Profile.name = $('nameInput').value.trim() || 'Player';
     Profile.save();
     showScreen('mainMenu');
   };
