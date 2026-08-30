@@ -1,5 +1,6 @@
 // ============================================================
 // SILENT CALIBER 2D — side-view shooter, original code
+// v0.3: character customization, pirate bots, multiple maps
 // ============================================================
 
 const WEAPONS = {
@@ -10,11 +11,41 @@ const WEAPONS = {
   sniper:  { name:'SNIPER',        dmg:95, mag:5,  reserve:20,  rate:1150,spread:0.005,bulletSpeed:1400,range:900 },
 };
 
+const SKIN_COLORS = ['#f2c299','#e0a878','#c58a5c','#8a5a3c','#5c3a24','#f5e6d3'];
+const OUTFIT_COLORS = ['#4a5c3a','#3a4a5c','#5c3a3a','#4a4a4a','#6b4a2a','#2a2a2a'];
+const HAT_TYPES = [
+  { key:'none',    icon:'—'  },
+  { key:'bandana', icon:'🏴' },
+  { key:'cap',     icon:'🧢' },
+  { key:'helmet',  icon:'⛑️' },
+  { key:'pirate',  icon:'🏴‍☠️' },
+];
+
+const MAPS = [
+  { name:'شهر متروکه',    seed:42,  ground:'#3a4658', sky:'#0e1420', accent:'#4d5c72' },
+  { name:'جزیره دزدان',   seed:777, ground:'#5c4a2a', sky:'#1a2a3a', accent:'#7a6238' },
+  { name:'پایگاه نظامی',  seed:1234,ground:'#2a3a2a', sky:'#0a1410', accent:'#3a5238' },
+];
+
 function $(id){ return document.getElementById(id); }
 function showScreen(id){
   document.querySelectorAll('.screen').forEach(s=>s.classList.add('hidden'));
   $(id).classList.remove('hidden');
 }
+
+// ---------------- Character profile (persisted) ----------------
+const Profile = {
+  name: localStorage.getItem('sc_name') || 'Amin',
+  skin: localStorage.getItem('sc_skin') || SKIN_COLORS[0],
+  outfit: localStorage.getItem('sc_outfit') || OUTFIT_COLORS[0],
+  hat: localStorage.getItem('sc_hat') || 'none',
+  save(){
+    localStorage.setItem('sc_name', this.name);
+    localStorage.setItem('sc_skin', this.skin);
+    localStorage.setItem('sc_outfit', this.outfit);
+    localStorage.setItem('sc_hat', this.hat);
+  }
+};
 
 window.addEventListener('load', ()=>{
   let p = 0;
@@ -26,19 +57,27 @@ window.addEventListener('load', ()=>{
   }, 200);
 
   $('btnPlay').onclick = ()=> showScreen('modeSelect');
+  $('btnCustomize').onclick = ()=> openCustomize();
   $('btnSettings').onclick = ()=> showScreen('settingsScreen');
   $('btnCredits').onclick = ()=> showScreen('creditsScreen');
   $('backFromSettings').onclick = ()=> showScreen('mainMenu');
   $('backFromCredits').onclick = ()=> showScreen('mainMenu');
   $('backFromMode').onclick = ()=> showScreen('mainMenu');
   $('backFromLan').onclick = ()=> showScreen('modeSelect');
+  $('backFromCustomize').onclick = ()=> showScreen('mainMenu');
+  $('backFromMapSelect').onclick = ()=> showScreen('modeSelect');
 
-  $('modeBot').onclick = ()=> startGame('bot');
+  $('modeBot').onclick = ()=> openMapSelect();
   $('modeLan').onclick = ()=> showScreen('lanLobby');
-  $('btnHostGame').onclick = ()=> startGame('lan-host');
-  $('btnJoinGame').onclick = ()=> startGame('lan-join');
+  $('btnHostGame').onclick = ()=> { GameState.selectedMap = 0; startGame('lan-host'); };
+  $('btnJoinGame').onclick = ()=> { GameState.selectedMap = 0; startGame('lan-join'); };
 
-  // Pause / Exit controls
+  $('saveCustomize').onclick = ()=>{
+    Profile.name = $('nameInput').value.trim() || 'Amin';
+    Profile.save();
+    showScreen('mainMenu');
+  };
+
   $('pauseBtn').onclick = ()=>{ GameState.paused=true; $('pauseMenu').classList.remove('hidden'); };
   $('resumeBtn').onclick = ()=>{ $('pauseMenu').classList.add('hidden'); GameState.paused=false; };
   $('quitToMenuBtn').onclick = ()=> quitToMenu();
@@ -52,6 +91,8 @@ window.addEventListener('load', ()=>{
   $('reloadBtn').addEventListener('touchstart', e=>{ e.preventDefault(); reload(); });
 
   setupJoystick();
+  buildCustomizeUI();
+  buildMapSelectUI();
 });
 
 function quitToMenu(){
@@ -62,6 +103,65 @@ function quitToMenu(){
   if(Net.ws) try{ Net.ws.close(); }catch(e){}
   showScreen('mainMenu');
 }
+
+// ---------------- Customize screen ----------------
+function openCustomize(){
+  $('nameInput').value = Profile.name;
+  showScreen('customizeScreen');
+  drawPreview();
+}
+function buildCustomizeUI(){
+  const skinRow = $('skinRow');
+  SKIN_COLORS.forEach(c=>{
+    const el = document.createElement('div');
+    el.className = 'swatch' + (c===Profile.skin?' selected':'');
+    el.style.background = c;
+    el.onclick = ()=>{ Profile.skin=c; refreshSwatches(); drawPreview(); };
+    skinRow.appendChild(el);
+  });
+  const outfitRow = $('outfitRow');
+  OUTFIT_COLORS.forEach(c=>{
+    const el = document.createElement('div');
+    el.className = 'swatch' + (c===Profile.outfit?' selected':'');
+    el.style.background = c;
+    el.onclick = ()=>{ Profile.outfit=c; refreshSwatches(); drawPreview(); };
+    outfitRow.appendChild(el);
+  });
+  const hatRow = $('hatRow');
+  HAT_TYPES.forEach(h=>{
+    const el = document.createElement('div');
+    el.className = 'hatSwatch' + (h.key===Profile.hat?' selected':'');
+    el.textContent = h.icon;
+    el.onclick = ()=>{ Profile.hat=h.key; refreshSwatches(); drawPreview(); };
+    hatRow.appendChild(el);
+  });
+}
+function refreshSwatches(){
+  document.querySelectorAll('#skinRow .swatch').forEach((el,i)=> el.classList.toggle('selected', SKIN_COLORS[i]===Profile.skin));
+  document.querySelectorAll('#outfitRow .swatch').forEach((el,i)=> el.classList.toggle('selected', OUTFIT_COLORS[i]===Profile.outfit));
+  document.querySelectorAll('#hatRow .hatSwatch').forEach((el,i)=> el.classList.toggle('selected', HAT_TYPES[i].key===Profile.hat));
+}
+function drawPreview(){
+  const c = $('previewCanvas'), pctx = c.getContext('2d');
+  pctx.clearRect(0,0,c.width,c.height);
+  pctx.save();
+  pctx.translate(c.width/2, c.height-30);
+  drawFigure(pctx, 0, 0, 1, Profile.outfit, Profile.skin, Profile.hat, 100, false);
+  pctx.restore();
+}
+
+// ---------------- Map select ----------------
+function buildMapSelectUI(){
+  const wrap = $('mapCards');
+  MAPS.forEach((m, i)=>{
+    const el = document.createElement('div');
+    el.className = 'modeCard';
+    el.innerHTML = `<div class="modeIcon">🗺️</div><div class="modeName">${m.name}</div><div class="modeDesc">نقشه شماره ${i+1}</div>`;
+    el.onclick = ()=>{ GameState.selectedMap = i; startGame('bot'); };
+    wrap.appendChild(el);
+  });
+}
+function openMapSelect(){ showScreen('mapSelect'); }
 
 // ---------------- Input ----------------
 const Input = { moveX:0, firing:false, jetpack:false };
@@ -91,7 +191,7 @@ const WORLD_W = 3000, WORLD_H = 1200;
 function buildMap(seed){
   const rng = mulberry32(seed);
   const platforms = [];
-  platforms.push({x:0, y:1100, w:WORLD_W, h:100}); // ground
+  platforms.push({x:0, y:1100, w:WORLD_W, h:100});
   let x = 150;
   while(x < WORLD_W - 200){
     const w = 120 + rng()*180;
@@ -99,7 +199,6 @@ function buildMap(seed){
     platforms.push({x, y, w, h:26});
     x += w + 100 + rng()*150;
   }
-  // some floating platforms higher up
   for(let i=0;i<8;i++){
     platforms.push({x: 200 + rng()*(WORLD_W-400), y: 200 + rng()*250, w: 100+rng()*120, h:22});
   }
@@ -109,7 +208,7 @@ function mulberry32(a){ return function(){ a|=0; a=a+0x6D2B79F5|0; let t=Math.im
 
 // ---------------- Game State ----------------
 const GameState = {
-  running:false, paused:false, mode:'bot',
+  running:false, paused:false, mode:'bot', selectedMap:0,
   player:{ x:150,y:900,vx:0,vy:0,facing:1,onGround:false,hp:100,fuel:100,score:0,kills:0,deaths:0,w:26,h:46 },
   weaponKey:'rifle', ammo:{}, reloading:false, lastShot:0,
   bots:[], bullets:[], remotePlayers:{}, platforms:[],
@@ -117,14 +216,15 @@ const GameState = {
 };
 for(const k in WEAPONS) GameState.ammo[k] = { mag: WEAPONS[k].mag, reserve: WEAPONS[k].reserve };
 
-let canvas=null, ctx=null;
+let canvas=null, ctx=null, currentMap=MAPS[0];
 
 function startGame(mode){
   GameState.mode = mode;
+  currentMap = MAPS[GameState.selectedMap] || MAPS[0];
   showScreen('gameScreen');
   canvas = $('renderCanvas');
   ctx = canvas.getContext('2d');
-  GameState.platforms = buildMap(42);
+  GameState.platforms = buildMap(currentMap.seed);
   resetPlayer();
   spawnBots(mode==='bot'? 5 : 0);
   GameState.bullets = [];
@@ -158,7 +258,7 @@ function spawnBots(n){
   GameState.bots = [];
   for(let i=0;i<n;i++){
     GameState.bots.push({
-      id:'bot'+i, x:400+i*300, y:900, vx:0, vy:0, facing:1, onGround:false,
+      id:'دزد '+(i+1), x:400+i*300, y:900, vx:0, vy:0, facing:1, onGround:false,
       hp:100, alive:true, lastShot:0, w:26, h:46, dir:1
     });
   }
@@ -193,9 +293,8 @@ function tryFire(now){
   const pellets = w.pellets || 1;
   for(let i=0;i<pellets;i++){
     const spread = (Math.random()-0.5)*w.spread;
-    const angle = spread;
-    const dirX = p.facing * Math.cos(angle);
-    const dirY = Math.sin(angle);
+    const dirX = p.facing * Math.cos(spread);
+    const dirY = Math.sin(spread);
     GameState.bullets.push({
       x: p.x + p.facing*20, y: p.y - 24, vx: dirX*w.bulletSpeed, vy: dirY*w.bulletSpeed,
       dmg: w.dmg, range: w.range, dist:0, owner:'player'
@@ -292,7 +391,7 @@ function collidePlatforms(entity){
   entity.onGround = false;
   for(const plat of GameState.platforms){
     const left = entity.x - entity.w/2, right = entity.x + entity.w/2;
-    const top = entity.y - entity.h, bottom = entity.y;
+    const bottom = entity.y;
     if(right > plat.x && left < plat.x+plat.w){
       if(bottom >= plat.y && bottom - entity.vy_prev*0.02 <= plat.y+6 && entity.vy >= 0){
         entity.y = plat.y; entity.vy = 0; entity.onGround = true;
@@ -358,48 +457,48 @@ function updateBots(dt, now){
 // ---------------- Render ----------------
 function render(){
   const w = canvas.width, h = canvas.height;
-  ctx.fillStyle = '#0e1420';
+  ctx.fillStyle = currentMap.sky;
   ctx.fillRect(0,0,w,h);
 
   const camX = GameState.camX - w/2, camY = GameState.camY - h/2 - 100;
 
-  // parallax background lines
-  ctx.strokeStyle = '#1a2230';
+  ctx.strokeStyle = currentMap.accent;
+  ctx.globalAlpha = 0.3;
   ctx.lineWidth = 1;
   for(let i=0;i<20;i++){
     const x = (i*220 - camX*0.3) % (w+220);
     ctx.beginPath(); ctx.moveTo(x,0); ctx.lineTo(x,h); ctx.stroke();
   }
+  ctx.globalAlpha = 1;
 
   ctx.save();
   ctx.translate(-camX, -camY);
 
-  // platforms
-  ctx.fillStyle = '#3a4658';
+  ctx.fillStyle = currentMap.ground;
   for(const plat of GameState.platforms){
     ctx.fillRect(plat.x, plat.y, plat.w, plat.h);
-    ctx.fillStyle = '#4d5c72';
+    ctx.fillStyle = currentMap.accent;
     ctx.fillRect(plat.x, plat.y, plat.w, 4);
-    ctx.fillStyle = '#3a4658';
+    ctx.fillStyle = currentMap.ground;
   }
 
-  // bots
   for(const b of GameState.bots){
     if(!b.alive) continue;
-    drawCharacter(b.x, b.y, b.dir, '#e05a3a', b.hp);
+    drawFigure(ctx, b.x, b.y, b.dir, '#7a5a3a', '#d9a66c', 'pirate', b.hp, true);
+    ctx.fillStyle='#fff'; ctx.font='11px sans-serif'; ctx.textAlign='center';
+    ctx.fillText(b.id, b.x, b.y-72);
   }
 
-  // remote players
   for(const id in GameState.remotePlayers){
     const rp = GameState.remotePlayers[id];
-    drawCharacter(rp.x, rp.y, rp.facing||1, '#3ad0ff', 100);
+    drawFigure(ctx, rp.x, rp.y, rp.facing||1, OUTFIT_COLORS[1], SKIN_COLORS[0], 'cap', 100, false);
   }
 
-  // player
   const p = GameState.player;
-  drawCharacter(p.x, p.y, p.facing, '#ffb020', p.hp);
+  drawFigure(ctx, p.x, p.y, p.facing, Profile.outfit, Profile.skin, Profile.hat, p.hp, false);
+  ctx.fillStyle='#ffd166'; ctx.font='11px sans-serif'; ctx.textAlign='center';
+  ctx.fillText(Profile.name, p.x, p.y-72);
 
-  // bullets
   ctx.fillStyle = '#ffe066';
   for(const b of GameState.bullets){
     ctx.beginPath(); ctx.arc(b.x, b.y, 3, 0, 7); ctx.fill();
@@ -408,23 +507,53 @@ function render(){
   ctx.restore();
 }
 
-function drawCharacter(x, y, dir, color, hp){
-  ctx.save();
-  ctx.translate(x, y);
-  // body
-  ctx.fillStyle = color;
-  ctx.fillRect(-13, -46, 26, 46);
-  // head
-  ctx.beginPath(); ctx.arc(0, -52, 10, 0, 7); ctx.fill();
+// unified figure drawing used for both preview canvas and in-game render
+function drawFigure(context, x, y, dir, outfitColor, skinColor, hat, hp, isPirate){
+  context.save();
+  context.translate(x, y);
+
+  // body (outfit)
+  context.fillStyle = outfitColor;
+  context.fillRect(-13, -46, 26, 46);
+
+  // head (skin)
+  context.fillStyle = skinColor;
+  context.beginPath(); context.arc(0, -52, 10, 0, 7); context.fill();
+
+  // hat / accessory
+  if(hat === 'bandana' || hat === 'pirate'){
+    context.fillStyle = '#1a1a1a';
+    context.beginPath();
+    context.moveTo(-10,-58); context.lineTo(10,-58); context.lineTo(6,-48); context.lineTo(-6,-48);
+    context.closePath(); context.fill();
+  } else if(hat === 'cap'){
+    context.fillStyle = '#c0392b';
+    context.beginPath(); context.arc(0,-56,9,Math.PI,0); context.fill();
+    context.fillRect(-2,-58,14,4);
+  } else if(hat === 'helmet'){
+    context.fillStyle = '#556b2f';
+    context.beginPath(); context.arc(0,-56,10,Math.PI,0); context.fill();
+  }
+
+  // pirate eyepatch
+  if(isPirate){
+    context.fillStyle = '#111';
+    context.fillRect(dir>0?-6:-2, -55, 6, 4);
+    context.strokeStyle = '#111'; context.lineWidth=1;
+    context.beginPath(); context.moveTo(-9,-56); context.lineTo(9,-52); context.stroke();
+  }
+
   // gun
-  ctx.fillStyle = '#222';
-  ctx.fillRect(dir>0?10:-26, -30, 16, 5);
+  context.fillStyle = '#222';
+  context.fillRect(dir>0?10:-26, -30, 16, 5);
+
   // hp bar
-  ctx.fillStyle = '#000000aa';
-  ctx.fillRect(-16, -66, 32, 5);
-  ctx.fillStyle = hp>50?'#4ade80':(hp>20?'#fbbf24':'#ef4444');
-  ctx.fillRect(-16, -66, 32*Math.max(0,hp)/100, 5);
-  ctx.restore();
+  context.fillStyle = '#000000aa';
+  context.fillRect(-16, -66, 32, 5);
+  context.fillStyle = hp>50?'#4ade80':(hp>20?'#fbbf24':'#ef4444');
+  context.fillRect(-16, -66, 32*Math.max(0,hp)/100, 5);
+
+  context.restore();
 }
 
 // ---------------- LAN Multiplayer ----------------
