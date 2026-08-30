@@ -1,6 +1,6 @@
 // ============================================================
-// SILENT CALIBER 2D — side-view shooter, original code
-// v0.3: character customization, pirate bots, multiple maps
+// SILENT CALIBER 2D — side-view shooter
+// v0.4: real character sprites (Kenney Toon Characters, CC0), maps
 // ============================================================
 
 const WEAPONS = {
@@ -11,19 +11,19 @@ const WEAPONS = {
   sniper:  { name:'SNIPER',        dmg:95, mag:5,  reserve:20,  rate:1150,spread:0.005,bulletSpeed:1400,range:900 },
 };
 
-const SKIN_COLORS = ['#f2c299','#e0a878','#c58a5c','#8a5a3c','#5c3a24','#f5e6d3'];
-const OUTFIT_COLORS = ['#4a5c3a','#3a4a5c','#5c3a3a','#4a4a4a','#6b4a2a','#2a2a2a'];
-const HAT_TYPES = [
-  { key:'none',    icon:'—'  },
-  { key:'bandana', icon:'🏴' },
-  { key:'cap',     icon:'🧢' },
-  { key:'helmet',  icon:'⛑️' },
-  { key:'pirate',  icon:'🏴‍☠️' },
+const CHARACTERS = [
+  { key:'maleAdventurer',   label:'کاراکتر ۱' },
+  { key:'femaleAdventurer', label:'کاراکتر ۲' },
+  { key:'malePerson',       label:'کاراکتر ۳' },
+  { key:'femalePerson',     label:'کاراکتر ۴' },
+  { key:'robot',            label:'ربات' },
+  { key:'zombie',           label:'زامبی' },
 ];
+const ENEMY_CHAR = 'zombie'; // bots always look like this
 
 const MAPS = [
   { name:'شهر متروکه',    seed:42,  ground:'#3a4658', sky:'#0e1420', accent:'#4d5c72' },
-  { name:'جزیره دزدان',   seed:777, ground:'#5c4a2a', sky:'#1a2a3a', accent:'#7a6238' },
+  { name:'جزیره',         seed:777, ground:'#5c4a2a', sky:'#1a2a3a', accent:'#7a6238' },
   { name:'پایگاه نظامی',  seed:1234,ground:'#2a3a2a', sky:'#0a1410', accent:'#3a5238' },
 ];
 
@@ -33,28 +33,48 @@ function showScreen(id){
   $(id).classList.remove('hidden');
 }
 
-// ---------------- Character profile (persisted) ----------------
+// ---------------- Sprite loading ----------------
+const Sprites = {}; // Sprites[charKey] = { idle, side, walk0, walk1, jump, hurt } as Image objects
+let spritesLoaded = 0, spritesTotal = 0;
+function loadSprites(onDone){
+  const poses = ['idle','side','walk0','walk1','jump','hurt'];
+  spritesTotal = CHARACTERS.length * poses.length;
+  CHARACTERS.forEach(c=>{
+    Sprites[c.key] = {};
+    poses.forEach(pose=>{
+      const img = new Image();
+      img.onload = ()=>{ spritesLoaded++; if(spritesLoaded>=spritesTotal) onDone(); };
+      img.onerror = ()=>{ spritesLoaded++; if(spritesLoaded>=spritesTotal) onDone(); };
+      img.src = `assets/${c.key}_${pose}.png`;
+      Sprites[c.key][pose] = img;
+    });
+  });
+}
+
+// ---------------- Profile (persisted) ----------------
 const Profile = {
   name: localStorage.getItem('sc_name') || '',
-  skin: localStorage.getItem('sc_skin') || SKIN_COLORS[0],
-  outfit: localStorage.getItem('sc_outfit') || OUTFIT_COLORS[0],
-  hat: localStorage.getItem('sc_hat') || 'none',
+  character: localStorage.getItem('sc_character') || CHARACTERS[0].key,
   save(){
     localStorage.setItem('sc_name', this.name);
-    localStorage.setItem('sc_skin', this.skin);
-    localStorage.setItem('sc_outfit', this.outfit);
-    localStorage.setItem('sc_hat', this.hat);
+    localStorage.setItem('sc_character', this.character);
   }
 };
 
 window.addEventListener('load', ()=>{
   let p = 0;
   const bar = $('loadBarInner'), txt = $('loadText');
-  const steps = ['بارگذاری موتور بازی...','ساخت نقشه...','بارگذاری سلاح‌ها...','آماده‌سازی بات‌ها...','اتمام'];
+  const steps = ['بارگذاری تصاویر کاراکتر...','ساخت نقشه...','بارگذاری سلاح‌ها...','آماده‌سازی بات‌ها...','اتمام'];
   const iv = setInterval(()=>{
-    p += 20; bar.style.width = p+'%'; txt.textContent = steps[Math.min(steps.length-1, Math.floor(p/20))];
-    if(p>=100){ clearInterval(iv); $('loadingScreen').classList.add('hidden'); showScreen('mainMenu'); }
-  }, 200);
+    p += 15; if(p>90) p=90;
+    bar.style.width = p+'%'; txt.textContent = steps[Math.min(steps.length-1, Math.floor(p/20))];
+  }, 150);
+
+  loadSprites(()=>{
+    clearInterval(iv);
+    bar.style.width = '100%';
+    setTimeout(()=>{ $('loadingScreen').classList.add('hidden'); showScreen('mainMenu'); }, 150);
+  });
 
   $('btnPlay').onclick = ()=> showScreen('modeSelect');
   $('btnCustomize').onclick = ()=> openCustomize();
@@ -108,46 +128,45 @@ function quitToMenu(){
 function openCustomize(){
   $('nameInput').value = Profile.name;
   showScreen('customizeScreen');
+  refreshCharGrid();
   drawPreview();
 }
 function buildCustomizeUI(){
-  const skinRow = $('skinRow');
-  SKIN_COLORS.forEach(c=>{
+  const grid = $('charGrid');
+  CHARACTERS.forEach(c=>{
     const el = document.createElement('div');
-    el.className = 'swatch' + (c===Profile.skin?' selected':'');
-    el.style.background = c;
-    el.onclick = ()=>{ Profile.skin=c; refreshSwatches(); drawPreview(); };
-    skinRow.appendChild(el);
-  });
-  const outfitRow = $('outfitRow');
-  OUTFIT_COLORS.forEach(c=>{
-    const el = document.createElement('div');
-    el.className = 'swatch' + (c===Profile.outfit?' selected':'');
-    el.style.background = c;
-    el.onclick = ()=>{ Profile.outfit=c; refreshSwatches(); drawPreview(); };
-    outfitRow.appendChild(el);
-  });
-  const hatRow = $('hatRow');
-  HAT_TYPES.forEach(h=>{
-    const el = document.createElement('div');
-    el.className = 'hatSwatch' + (h.key===Profile.hat?' selected':'');
-    el.textContent = h.icon;
-    el.onclick = ()=>{ Profile.hat=h.key; refreshSwatches(); drawPreview(); };
-    hatRow.appendChild(el);
+    el.className = 'charCard';
+    el.dataset.key = c.key;
+    const thumb = document.createElement('canvas');
+    thumb.width = 64; thumb.height = 80;
+    el.appendChild(thumb);
+    const label = document.createElement('div');
+    label.className = 'charLabel'; label.textContent = c.label;
+    el.appendChild(label);
+    el.onclick = ()=>{ Profile.character = c.key; refreshCharGrid(); drawPreview(); };
+    grid.appendChild(el);
+
+    const tctx = thumb.getContext('2d');
+    const img = Sprites[c.key] && Sprites[c.key].idle;
+    if(img){
+      if(img.complete) tctx.drawImage(img, 0,0,96,128, 0,0,64,80);
+      else img.onload = ()=> tctx.drawImage(img, 0,0,96,128, 0,0,64,80);
+    }
   });
 }
-function refreshSwatches(){
-  document.querySelectorAll('#skinRow .swatch').forEach((el,i)=> el.classList.toggle('selected', SKIN_COLORS[i]===Profile.skin));
-  document.querySelectorAll('#outfitRow .swatch').forEach((el,i)=> el.classList.toggle('selected', OUTFIT_COLORS[i]===Profile.outfit));
-  document.querySelectorAll('#hatRow .hatSwatch').forEach((el,i)=> el.classList.toggle('selected', HAT_TYPES[i].key===Profile.hat));
+function refreshCharGrid(){
+  document.querySelectorAll('.charCard').forEach(el=>{
+    el.classList.toggle('selected', el.dataset.key === Profile.character);
+  });
 }
 function drawPreview(){
   const c = $('previewCanvas'), pctx = c.getContext('2d');
   pctx.clearRect(0,0,c.width,c.height);
-  pctx.save();
-  pctx.translate(c.width/2, c.height-30);
-  drawFigure(pctx, 0, 0, 1, Profile.outfit, Profile.skin, Profile.hat, 100, false);
-  pctx.restore();
+  const img = Sprites[Profile.character] && Sprites[Profile.character].idle;
+  if(img && img.complete){
+    const scale = 1.4;
+    pctx.drawImage(img, c.width/2 - 48*scale, c.height - 128*scale - 10, 96*scale, 128*scale);
+  }
 }
 
 // ---------------- Map select ----------------
@@ -209,7 +228,7 @@ function mulberry32(a){ return function(){ a|=0; a=a+0x6D2B79F5|0; let t=Math.im
 // ---------------- Game State ----------------
 const GameState = {
   running:false, paused:false, mode:'bot', selectedMap:0,
-  player:{ x:150,y:900,vx:0,vy:0,facing:1,onGround:false,hp:100,fuel:100,score:0,kills:0,deaths:0,w:26,h:46 },
+  player:{ x:150,y:900,vx:0,vy:0,facing:1,onGround:false,hp:100,fuel:100,score:0,kills:0,deaths:0,w:26,h:46,animT:0 },
   weaponKey:'rifle', ammo:{}, reloading:false, lastShot:0,
   bots:[], bullets:[], remotePlayers:{}, platforms:[],
   camX:0, camY:0,
@@ -258,8 +277,8 @@ function spawnBots(n){
   GameState.bots = [];
   for(let i=0;i<n;i++){
     GameState.bots.push({
-      id:'دزد '+(i+1), x:400+i*300, y:900, vx:0, vy:0, facing:1, onGround:false,
-      hp:100, alive:true, lastShot:0, w:26, h:46, dir:1
+      id:'دشمن '+(i+1), x:400+i*300, y:900, vx:0, vy:0, facing:1, onGround:false,
+      hp:100, alive:true, lastShot:0, w:26, h:46, dir:1, animT:0
     });
   }
 }
@@ -296,7 +315,7 @@ function tryFire(now){
     const dirX = p.facing * Math.cos(spread);
     const dirY = Math.sin(spread);
     GameState.bullets.push({
-      x: p.x + p.facing*20, y: p.y - 24, vx: dirX*w.bulletSpeed, vy: dirY*w.bulletSpeed,
+      x: p.x + p.facing*20, y: p.y - 60, vx: dirX*w.bulletSpeed, vy: dirY*w.bulletSpeed,
       dmg: w.dmg, range: w.range, dist:0, owner:'player'
     });
   }
@@ -312,13 +331,13 @@ function updateBullets(dt){
     if(b.owner==='player'){
       for(const bot of GameState.bots){
         if(!bot.alive) continue;
-        if(Math.abs(b.x-bot.x) < bot.w/2+4 && Math.abs(b.y-(bot.y-bot.h/2)) < bot.h/2+4){
+        if(Math.abs(b.x-bot.x) < bot.w/2+8 && Math.abs(b.y-(bot.y-bot.h)) < bot.h/2+8){
           damageBot(bot, b.dmg); hit=true; showHitMarker(); break;
         }
       }
     } else {
       const p = GameState.player;
-      if(Math.abs(b.x-p.x) < p.w/2+4 && Math.abs(b.y-(p.y-p.h/2)) < p.h/2+4){
+      if(Math.abs(b.x-p.x) < p.w/2+8 && Math.abs(b.y-(p.y-p.h)) < p.h/2+8){
         damagePlayer(b.dmg); hit=true;
       }
     }
@@ -404,6 +423,7 @@ function update(dt, now){
   const p = GameState.player;
   p.facing = Input.moveX < -0.1 ? -1 : (Input.moveX > 0.1 ? 1 : p.facing);
   p.vx = Input.moveX * 260;
+  p.animT += dt * Math.abs(Input.moveX);
 
   if(Input.jetpack && p.fuel > 0){
     p.vy -= 2600*dt;
@@ -436,6 +456,7 @@ function updateBots(dt, now){
     const dx = p.x - b.x;
     b.dir = dx > 0 ? 1 : -1;
     b.vx = b.dir * 100;
+    b.animT += dt;
     b.vy_prev = b.vy;
     b.vy += GRAVITY*dt;
     b.x += b.vx*dt; b.y += b.vy*dt;
@@ -447,7 +468,7 @@ function updateBots(dt, now){
       b.lastShot = now;
       const dirX = b.dir, dirY = (p.y-b.y)/Math.max(1,Math.abs(dx));
       GameState.bullets.push({
-        x:b.x+b.dir*16, y:b.y-24, vx:dirX*800, vy:dirY*300,
+        x:b.x+b.dir*16, y:b.y-60, vx:dirX*800, vy:dirY*300,
         dmg: 10+Math.random()*8, range:500, dist:0, owner:'bot'
       });
     }
@@ -484,20 +505,20 @@ function render(){
 
   for(const b of GameState.bots){
     if(!b.alive) continue;
-    drawFigure(ctx, b.x, b.y, b.dir, '#7a5a3a', '#d9a66c', 'pirate', b.hp, true);
+    drawSpriteChar(ENEMY_CHAR, b.x, b.y, b.dir, b.onGround, Math.abs(b.vx)>5, b.animT, b.hp);
     ctx.fillStyle='#fff'; ctx.font='11px sans-serif'; ctx.textAlign='center';
-    ctx.fillText(b.id, b.x, b.y-72);
+    ctx.fillText(b.id, b.x, b.y-80);
   }
 
   for(const id in GameState.remotePlayers){
     const rp = GameState.remotePlayers[id];
-    drawFigure(ctx, rp.x, rp.y, rp.facing||1, OUTFIT_COLORS[1], SKIN_COLORS[0], 'cap', 100, false);
+    drawSpriteChar(CHARACTERS[0].key, rp.x, rp.y, rp.facing||1, true, false, 0, 100);
   }
 
   const p = GameState.player;
-  drawFigure(ctx, p.x, p.y, p.facing, Profile.outfit, Profile.skin, Profile.hat, p.hp, false);
+  drawSpriteChar(Profile.character, p.x, p.y, p.facing, p.onGround, Math.abs(p.vx)>5, p.animT, p.hp);
   ctx.fillStyle='#ffd166'; ctx.font='11px sans-serif'; ctx.textAlign='center';
-  ctx.fillText(Profile.name, p.x, p.y-72);
+  ctx.fillText(Profile.name || 'Player', p.x, p.y-80);
 
   ctx.fillStyle = '#ffe066';
   for(const b of GameState.bullets){
@@ -507,53 +528,30 @@ function render(){
   ctx.restore();
 }
 
-// unified figure drawing used for both preview canvas and in-game render
-function drawFigure(context, x, y, dir, outfitColor, skinColor, hat, hp, isPirate){
-  context.save();
-  context.translate(x, y);
-
-  // body (outfit)
-  context.fillStyle = outfitColor;
-  context.fillRect(-13, -46, 26, 46);
-
-  // head (skin)
-  context.fillStyle = skinColor;
-  context.beginPath(); context.arc(0, -52, 10, 0, 7); context.fill();
-
-  // hat / accessory
-  if(hat === 'bandana' || hat === 'pirate'){
-    context.fillStyle = '#1a1a1a';
-    context.beginPath();
-    context.moveTo(-10,-58); context.lineTo(10,-58); context.lineTo(6,-48); context.lineTo(-6,-48);
-    context.closePath(); context.fill();
-  } else if(hat === 'cap'){
-    context.fillStyle = '#c0392b';
-    context.beginPath(); context.arc(0,-56,9,Math.PI,0); context.fill();
-    context.fillRect(-2,-58,14,4);
-  } else if(hat === 'helmet'){
-    context.fillStyle = '#556b2f';
-    context.beginPath(); context.arc(0,-56,10,Math.PI,0); context.fill();
+// draws a sprite-based character: picks pose (idle/walk/jump), flips by facing, shows hp bar
+function drawSpriteChar(charKey, x, y, dir, onGround, moving, animT, hp){
+  const set = Sprites[charKey];
+  if(!set) return;
+  let img = set.idle;
+  if(!onGround) img = set.jump || set.idle;
+  else if(moving){
+    img = (Math.floor(animT*8) % 2 === 0) ? set.walk0 : set.walk1;
   }
+  if(!img || !img.complete || img.naturalWidth===0) img = set.idle;
+  if(!img) return;
 
-  // pirate eyepatch
-  if(isPirate){
-    context.fillStyle = '#111';
-    context.fillRect(dir>0?-6:-2, -55, 6, 4);
-    context.strokeStyle = '#111'; context.lineWidth=1;
-    context.beginPath(); context.moveTo(-9,-56); context.lineTo(9,-52); context.stroke();
-  }
-
-  // gun
-  context.fillStyle = '#222';
-  context.fillRect(dir>0?10:-26, -30, 16, 5);
+  const dw = 52, dh = 70; // display size in world units
+  ctx.save();
+  ctx.translate(x, y - dh);
+  if(dir < 0){ ctx.scale(-1,1); }
+  ctx.drawImage(img, -dw/2, 0, dw, dh);
+  ctx.restore();
 
   // hp bar
-  context.fillStyle = '#000000aa';
-  context.fillRect(-16, -66, 32, 5);
-  context.fillStyle = hp>50?'#4ade80':(hp>20?'#fbbf24':'#ef4444');
-  context.fillRect(-16, -66, 32*Math.max(0,hp)/100, 5);
-
-  context.restore();
+  ctx.fillStyle = '#000000aa';
+  ctx.fillRect(x-16, y-dh-12, 32, 5);
+  ctx.fillStyle = hp>50?'#4ade80':(hp>20?'#fbbf24':'#ef4444');
+  ctx.fillRect(x-16, y-dh-12, 32*Math.max(0,hp)/100, 5);
 }
 
 // ---------------- LAN Multiplayer ----------------
