@@ -45,7 +45,7 @@ function loadSprites(onDone){
       const img = new Image();
       img.onload = ()=>{ spritesLoaded++; if(spritesLoaded>=spritesTotal) onDone(); };
       img.onerror = ()=>{ spritesLoaded++; if(spritesLoaded>=spritesTotal) onDone(); };
-      img.src = `assets/${c.key}_${pose}.png`;
+      img.src = `sprites/${c.key}_${pose}.png`;
       Sprites[c.key][pose] = img;
     });
   });
