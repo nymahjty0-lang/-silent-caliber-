@@ -39,12 +39,17 @@ let spritesLoaded = 0, spritesTotal = 0;
 function loadSprites(onDone){
   const poses = ['idle','side','walk0','walk1','jump','hurt'];
   spritesTotal = CHARACTERS.length * poses.length;
+  let settled = false;
+  const checkDone = ()=>{ if(!settled && spritesLoaded>=spritesTotal){ settled=true; onDone(); } };
   CHARACTERS.forEach(c=>{
     Sprites[c.key] = {};
     poses.forEach(pose=>{
       const img = new Image();
-      img.onload = ()=>{ spritesLoaded++; if(spritesLoaded>=spritesTotal) onDone(); };
-      img.onerror = ()=>{ spritesLoaded++; if(spritesLoaded>=spritesTotal) onDone(); };
+      let counted = false;
+      const markLoaded = ()=>{ if(counted) return; counted=true; spritesLoaded++; checkDone(); };
+      img.onload = markLoaded;
+      img.onerror = markLoaded;
+      setTimeout(markLoaded, 3000); // per-image safety net
       img.src = `sprites/${c.key}_${pose}.png`;
       Sprites[c.key][pose] = img;
     });
@@ -70,11 +75,16 @@ window.addEventListener('load', ()=>{
     bar.style.width = p+'%'; txt.textContent = steps[Math.min(steps.length-1, Math.floor(p/20))];
   }, 150);
 
-  loadSprites(()=>{
+  let gameStarted = false;
+  function goToMainMenu(){
+    if(gameStarted) return;
+    gameStarted = true;
     clearInterval(iv);
     bar.style.width = '100%';
     setTimeout(()=>{ $('loadingScreen').classList.add('hidden'); showScreen('mainMenu'); }, 150);
-  });
+  }
+  loadSprites(goToMainMenu);
+  setTimeout(goToMainMenu, 4000); // safety: never stay stuck on loading screen
 
   $('btnPlay').onclick = ()=> showScreen('modeSelect');
   $('btnCustomize').onclick = ()=> openCustomize();
