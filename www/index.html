@@ -22,10 +22,8 @@
   <div class="menuContent">
     <div class="gameLogo gameLogoText">SILENT CALIBER</div>
     <div class="menuTagline">2D TACTICAL COMBAT</div>
-    <div class="coinDisplay" id="mainMenuCoin">🪙 <span class="coinVal">0</span></div>
     <div class="menuButtons">
       <button class="btn btnPrimary" id="btnPlay">▶ شروع بازی</button>
-      <button class="btn" id="btnShop">🛒 فروشگاه</button>
       <button class="btn" id="btnCustomize">🧑 شخصی‌سازی شخصیت</button>
       <button class="btn" id="btnSettings">⚙ تنظیمات</button>
       <button class="btn" id="btnCredits">ℹ درباره</button>
@@ -144,8 +142,11 @@
   <div id="hud">
     <div class="hudTop">
       <div class="hudScore">امتیاز: <span id="scoreVal">0</span></div>
-      <div class="hudCart" id="hudCartBtn">🛒 <span class="coinVal">0</span></div>
       <div class="hudKD">K/D: <span id="killsVal">0</span>/<span id="deathsVal">0</span></div>
+    </div>
+    <div class="hudShopBox" id="hudCartBtn">
+      <div class="hudShopLine">فروشگاه🛒</div>
+      <div class="hudMoneyLine">پول💵:<span class="coinVal">0</span></div>
     </div>
     <div class="hitMarker" id="hitMarker"></div>
     <div class="damageFlash" id="damageFlash"></div>
@@ -212,4 +213,4 @@
 
 <script src="game.js"></script>
 </body>
-          </html>
+  </html>
