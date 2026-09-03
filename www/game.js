@@ -4,7 +4,7 @@
 // ============================================================
 
 const WEAPONS = {
-  blasterA: { name:"پیستول پایه", dmg:15, mag:8, reserve:32, rate:650, spread:0.05, bulletSpeed:850, range:350, price:0, sprite:"blaster-a" },
+  blasterA: { name:"رگبار پایه", dmg:20, mag:32, reserve:128, rate:85, spread:0.07, bulletSpeed:950, range:450, price:0, sprite:"blaster-a" },
   blasterB: { name:"اسلحه 2", dmg:17, mag:10, reserve:40, rate:622, spread:0.05, bulletSpeed:878, range:376, price:7, sprite:"blaster-b" },
   blasterC: { name:"اسلحه 3", dmg:18, mag:11, reserve:44, rate:594, spread:0.05, bulletSpeed:906, range:402, price:9, sprite:"blaster-c" },
   blasterD: { name:"اسلحه 4", dmg:20, mag:13, reserve:52, rate:566, spread:0.05, bulletSpeed:934, range:428, price:11, sprite:"blaster-d" },
@@ -153,7 +153,14 @@ window.addEventListener('load', ()=>{
   $('backFromLan').onclick = ()=> showScreen('modeSelect');
   $('backFromCustomize').onclick = ()=> showScreen('mainMenu');
   $('backFromMapSelect').onclick = ()=> showScreen('modeSelect');
-  $('backFromShop').onclick = ()=> showScreen('mainMenu');
+  $('backFromShop').onclick = ()=>{
+    if(GameState.running){
+      showScreen('gameScreen');
+      GameState.paused = false;
+    } else {
+      showScreen('mainMenu');
+    }
+  };
 
   $('modeBot').onclick = ()=> openMapSelect();
   $('modeLan').onclick = ()=> showScreen('lanLobby');
@@ -177,6 +184,11 @@ window.addEventListener('load', ()=>{
   $('jetpackBtn').addEventListener('touchend', e=>{ e.preventDefault(); Input.jetpack=false; });
   $('reloadBtn').addEventListener('touchstart', e=>{ e.preventDefault(); reload(); });
   $('nadeBtn').addEventListener('touchstart', e=>{ e.preventDefault(); throwGrenade(); });
+  $('hudCartBtn').addEventListener('click', ()=>{
+    GameState.paused = true;
+    buildShopUI();
+    showScreen('shopScreen');
+  });
 
   setupJoystick();
   buildCustomizeUI();
@@ -192,7 +204,36 @@ function quitToMenu(){
   $('pauseMenu').classList.add('hidden');
   $('deathScreen').classList.add('hidden');
   if(Net.ws) try{ Net.ws.close(); }catch(e){}
+  resetEconomy();
   showScreen('mainMenu');
+}
+
+function resetEconomy(){
+  Profile.coins = 0;
+  Profile.grenades = 0;
+  Profile.unlocked = { [STARTER_WEAPON]: true };
+  Profile.save();
+  updateCoinDisplays();
+  buildShopUI();
+  buildWeaponSwitchUI();
+}
+
+function getMostExpensiveWeaponKey(){
+  let best = STARTER_WEAPON, bestPrice = -1;
+  for(const k in WEAPONS){ if(WEAPONS[k].price > bestPrice){ bestPrice = WEAPONS[k].price; best = k; } }
+  return best;
+}
+function spawnZombieHorde(n){
+  const p = GameState.player;
+  for(let i=0;i<n;i++){
+    const ang = Math.random()*Math.PI*2;
+    GameState.bots.push({
+      id:'هجوم '+(i+1), x: p.x + Math.cos(ang)*(400+Math.random()*300), y:900,
+      vx:0, vy:0, facing:1, onGround:false, hp:80, alive:true, lastShot:0,
+      w:26, h:46, dir:1, animT:0
+    });
+  }
+  addKillFeed(`⚠️ یک لشکر زامبی از راه رسید!`);
 }
 
 // ---------------- Shop ----------------
@@ -222,6 +263,9 @@ function buildShopUI(){
           updateCoinDisplays();
           buildShopUI();
           buildWeaponSwitchUI();
+          if(key === getMostExpensiveWeaponKey() && GameState.running){
+            spawnZombieHorde(22);
+          }
         } else {
           alert('سکه کافی نیست');
         }
