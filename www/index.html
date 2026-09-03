@@ -22,8 +22,10 @@
   <div class="menuContent">
     <div class="gameLogo gameLogoText">SILENT CALIBER</div>
     <div class="menuTagline">2D TACTICAL COMBAT</div>
+    <div class="coinDisplay">🪙 <span class="coinVal">0</span></div>
     <div class="menuButtons">
       <button class="btn btnPrimary" id="btnPlay">▶ شروع بازی</button>
+      <button class="btn" id="btnShop">🛒 فروشگاه</button>
       <button class="btn" id="btnCustomize">🧑 شخصی‌سازی شخصیت</button>
       <button class="btn" id="btnSettings">⚙ تنظیمات</button>
       <button class="btn" id="btnCredits">ℹ درباره</button>
@@ -52,6 +54,17 @@
       <button class="btn btnPrimary" id="saveCustomize">ذخیره</button>
       <button class="btn btnBack" id="backFromCustomize">بازگشت</button>
     </div>
+  </div>
+</div>
+
+<!-- SHOP SCREEN -->
+<div id="shopScreen" class="screen hidden">
+  <div class="menuBg"></div>
+  <div class="menuContent">
+    <div class="panelTitle">فروشگاه</div>
+    <div class="coinDisplay">🪙 <span class="coinVal">0</span></div>
+    <div class="shopGrid" id="shopItems"></div>
+    <button class="btn btnBack" id="backFromShop">بازگشت</button>
   </div>
 </div>
 
@@ -154,6 +167,7 @@
       <div class="weaponName" id="weaponName">ASSAULT RIFLE</div>
       <div class="ammoCount"><span id="ammoInMag">30</span> / <span id="ammoReserve">90</span></div>
     </div>
+    <div class="nadeCounter">💣 <span id="nadeCount">0</span></div>
   </div>
 
   <div id="touchControls">
@@ -168,16 +182,11 @@
       <div class="ctrlColumn">
         <button class="ctrlBtn smallBtn" id="jetpackBtn">🚀</button>
         <button class="ctrlBtn smallBtn" id="reloadBtn">⟳</button>
+        <button class="ctrlBtn smallBtn" id="nadeBtn">💣</button>
       </div>
     </div>
 
-    <div class="weaponSwitchRow" id="weaponSwitchRow">
-      <button class="weaponBtn" data-weapon="pistol">پیستول</button>
-      <button class="weaponBtn" data-weapon="smg">SMG</button>
-      <button class="weaponBtn active" data-weapon="rifle">رایفل</button>
-      <button class="weaponBtn" data-weapon="shotgun">شاتگان</button>
-      <button class="weaponBtn" data-weapon="sniper">اسنایپر</button>
-    </div>
+    <div class="weaponSwitchRow" id="weaponSwitchRow"></div>
 
     <button class="ctrlBtn pauseBtn" id="pauseBtn">☰</button>
   </div>
@@ -202,4 +211,4 @@
 
 <script src="game.js"></script>
 </body>
-  </html>
+      </html>
