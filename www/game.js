@@ -144,9 +144,7 @@ window.addEventListener('load', ()=>{
 
   $('btnPlay').onclick = ()=> showScreen('modeSelect');
   $('btnCustomize').onclick = ()=> openCustomize();
-  $('btnShop').onclick = ()=> openShop();
-  $('mainMenuCoin').addEventListener('touchstart', e=>{ e.preventDefault(); openShop(); });
-  $('mainMenuCoin').addEventListener('click', ()=> openShop());
+  // shop is only reachable from in-game top-left button now
   $('btnSettings').onclick = ()=> showScreen('settingsScreen');
   $('btnCredits').onclick = ()=> showScreen('creditsScreen');
   $('backFromSettings').onclick = ()=> showScreen('mainMenu');
