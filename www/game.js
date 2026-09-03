@@ -145,6 +145,8 @@ window.addEventListener('load', ()=>{
   $('btnPlay').onclick = ()=> showScreen('modeSelect');
   $('btnCustomize').onclick = ()=> openCustomize();
   $('btnShop').onclick = ()=> openShop();
+  $('mainMenuCoin').addEventListener('touchstart', e=>{ e.preventDefault(); openShop(); });
+  $('mainMenuCoin').addEventListener('click', ()=> openShop());
   $('btnSettings').onclick = ()=> showScreen('settingsScreen');
   $('btnCredits').onclick = ()=> showScreen('creditsScreen');
   $('backFromSettings').onclick = ()=> showScreen('mainMenu');
@@ -184,6 +186,12 @@ window.addEventListener('load', ()=>{
   $('jetpackBtn').addEventListener('touchend', e=>{ e.preventDefault(); Input.jetpack=false; });
   $('reloadBtn').addEventListener('touchstart', e=>{ e.preventDefault(); reload(); });
   $('nadeBtn').addEventListener('touchstart', e=>{ e.preventDefault(); throwGrenade(); });
+  $('hudCartBtn').addEventListener('touchstart', e=>{
+    e.preventDefault();
+    GameState.paused = true;
+    buildShopUI();
+    showScreen('shopScreen');
+  });
   $('hudCartBtn').addEventListener('click', ()=>{
     GameState.paused = true;
     buildShopUI();
