@@ -73,10 +73,9 @@ html,body { width:100%; height:100%; overflow:hidden; background:#05070a; font-f
 #hud{ position:fixed; inset:0; z-index:10; pointer-events:none; }
 .hudTop{ position:absolute; top:0; left:0; right:0; display:flex; justify-content:space-between; padding:14px 18px; }
 .hudScore,.hudKD{ color:#fff; background:#00000066; padding:6px 12px; border-radius:6px; font-size:13px; font-weight:600; }
-.hudShopBox{ position:absolute; top:14px; left:18px; background:#00000088; border-radius:8px; padding:7px 12px; pointer-events:auto; text-align:right; }
+.hudShopBox{ position:absolute; top:14px; left:18px; background:#00000088; border-radius:8px; padding:8px 14px; pointer-events:auto; white-space:nowrap; color:#fff; font-size:13px; font-weight:700; z-index:20; }
+.hudShopBox .coinVal{ color:#ffd166; font-weight:800; }
 .hudShopBox:active{ transform:scale(.95); }
-.hudShopLine{ color:#fff; font-size:12px; font-weight:700; }
-.hudMoneyLine{ color:#ffd166; font-size:13px; font-weight:800; margin-top:2px; }
 
 .hitMarker{ position:absolute; top:50%; left:50%; width:30px; height:30px; transform:translate(-50%,-50%); opacity:0; }
 .hitMarker.show{ opacity:1; animation:hitFade .25s ease-out; }
@@ -136,4 +135,4 @@ html,body { width:100%; height:100%; overflow:hidden; background:#05070a; font-f
 @media(min-width:700px){
   .joystickZone{ width:160px; height:160px; }
   .fireBtn{ width:90px; height:90px; }
-}
+                                        }
